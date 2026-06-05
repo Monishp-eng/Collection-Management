@@ -5,7 +5,7 @@ jspm_packages/
 # Build outputs
 build/
 dist/
-public/
+backend/public/
 
 # Environment files
 .env
