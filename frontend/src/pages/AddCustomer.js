@@ -3,18 +3,40 @@ import { useNavigate } from 'react-router-dom';
 import { customerAPI } from '../api/api';
 import { Save, AlertCircle, User2, CreditCard, CalendarDays } from 'lucide-react';
 
+const getLocalDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getWeekdayFromDate = (dateStr) => {
+  if (!dateStr) return 'Monday';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return 'Monday';
+  const [year, month, day] = parts.map(Number);
+  const date = new Date(year, month - 1, day);
+  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return daysOfWeek[date.getDay()];
+};
+
 export default function AddCustomer() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const initialDate = getLocalDateString();
+  const initialWeekday = getWeekdayFromDate(initialDate);
+
   const [formData, setFormData] = useState({
     name: '',
     wifeCaretaker: '',
     phone: '',
     address: '',
     amountGiven: '',
-    dateGiven: new Date().toISOString().split('T')[0],
-    collectionWeekDay: 'Monday',
+    dateGiven: initialDate,
+    collectionWeekDay: initialWeekday,
     weeklyEMI: '',
     totalWeeks: '15'
   });
@@ -32,7 +54,45 @@ export default function AddCustomer() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'dateGiven') {
+        updated.collectionWeekDay = getWeekdayFromDate(value);
+      }
+      return updated;
+    });
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      const tagName = e.target.tagName.toLowerCase();
+      if (tagName !== 'textarea' && e.target.type !== 'submit') {
+        e.preventDefault();
+        const form = e.target.form;
+        if (form) {
+          const index = Array.prototype.indexOf.call(form, e.target);
+          if (index >= 0 && index < form.elements.length - 1) {
+            let nextIndex = index + 1;
+            while (nextIndex < form.elements.length) {
+              const element = form.elements[nextIndex];
+              if (
+                element &&
+                !element.disabled &&
+                element.tabIndex !== -1 &&
+                (element.tagName.toLowerCase() === 'input' ||
+                  element.tagName.toLowerCase() === 'select' ||
+                  element.tagName.toLowerCase() === 'textarea' ||
+                  element.tagName.toLowerCase() === 'button')
+              ) {
+                element.focus();
+                break;
+              }
+              nextIndex++;
+            }
+          }
+        }
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -86,29 +146,29 @@ export default function AddCustomer() {
       </div>
 
       <div className={sectionClass}>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <div className="grid grid-cols-1 gap-6">
             <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4 md:p-5">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Customer Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-semibold mb-2">Customer Name *</label>
-                  <input type="text" name="name" value={formData.name} onChange={handleChange} className={fieldClass} required />
+                  <input type="text" name="name" value={formData.name} onChange={handleChange} onKeyDown={handleKeyDown} autoComplete="new-customer-name" className={fieldClass} required />
                 </div>
 
                 <div>
                   <label className="block font-semibold mb-2">Wife/Caretaker Name</label>
-                  <input type="text" name="wifeCaretaker" value={formData.wifeCaretaker} onChange={handleChange} className={fieldClass} placeholder="Optional" />
+                  <input type="text" name="wifeCaretaker" value={formData.wifeCaretaker} onChange={handleChange} onKeyDown={handleKeyDown} autoComplete="new-customer-caretaker" className={fieldClass} placeholder="Optional" />
                 </div>
 
                 <div>
                   <label className="block font-semibold mb-2">Phone Number *</label>
-                  <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className={fieldClass} pattern="\d{10}" placeholder="10-digit number" required />
+                  <input type="tel" name="phone" value={formData.phone} onChange={handleChange} onKeyDown={handleKeyDown} autoComplete="new-customer-phone" className={fieldClass} pattern="\d{10}" placeholder="10-digit number" required />
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="block font-semibold mb-2">Address *</label>
-                  <textarea name="address" value={formData.address} onChange={handleChange} rows="3" className={fieldClass} required />
+                  <textarea name="address" value={formData.address} onChange={handleChange} onKeyDown={handleKeyDown} autoComplete="new-customer-address" rows="3" className={fieldClass} required />
                 </div>
               </div>
             </section>
@@ -118,22 +178,22 @@ export default function AddCustomer() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-semibold mb-2">Amount Given (₹) *</label>
-                  <input type="number" name="amountGiven" min="1" value={formData.amountGiven} onChange={handleChange} className={fieldClass} required />
+                  <input type="number" name="amountGiven" min="1" value={formData.amountGiven} onChange={handleChange} onKeyDown={handleKeyDown} autoComplete="new-customer-amount" className={fieldClass} required />
                 </div>
 
                 <div>
                   <label className="block font-semibold mb-2">Weekly EMI (₹) *</label>
-                  <input type="number" name="weeklyEMI" min="1" value={formData.weeklyEMI} onChange={handleChange} className={fieldClass} required />
+                  <input type="number" name="weeklyEMI" min="1" value={formData.weeklyEMI} onChange={handleChange} onKeyDown={handleKeyDown} autoComplete="new-customer-emi" className={fieldClass} required />
                 </div>
 
                 <div>
                   <label className="block font-semibold mb-2">Total Weeks *</label>
-                  <input type="number" name="totalWeeks" min="1" value={formData.totalWeeks} onChange={handleChange} className={fieldClass} required />
+                  <input type="number" name="totalWeeks" min="1" value={formData.totalWeeks} onChange={handleChange} onKeyDown={handleKeyDown} autoComplete="new-customer-weeks" className={fieldClass} required />
                 </div>
 
                 <div>
                   <label className="block font-semibold mb-2">Date Given *</label>
-                  <input type="date" name="dateGiven" value={formData.dateGiven} onChange={handleChange} className={fieldClass} required />
+                  <input type="date" name="dateGiven" value={formData.dateGiven} onChange={handleChange} onKeyDown={handleKeyDown} autoComplete="off" className={fieldClass} required />
                 </div>
               </div>
             </section>
@@ -143,7 +203,7 @@ export default function AddCustomer() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-semibold mb-2">Collection Day *</label>
-                  <select name="collectionWeekDay" value={formData.collectionWeekDay} onChange={handleChange} className={fieldClass} required>
+                  <select name="collectionWeekDay" value={formData.collectionWeekDay} onChange={handleChange} onKeyDown={handleKeyDown} className={fieldClass} required>
                     {days.map(day => (
                       <option key={day} value={day}>{day}</option>
                     ))}
