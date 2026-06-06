@@ -205,9 +205,7 @@ exports.requestPasswordReset = async (req, res) => {
     } catch (emailError) {
       console.error('Failed to send Email:', emailError);
       return res.status(500).json({
-        message: process.env.NODE_ENV === 'production'
-          ? 'Failed to send recovery code to the registered email'
-          : `Failed to send recovery code to the registered email: ${emailError.message}`
+        message: `Failed to send recovery code to the registered email: ${emailError.message} (SMTP Host: ${process.env.SMTP_HOST || 'not set'}, Port: ${process.env.SMTP_PORT || 'not set'}, User: ${process.env.SMTP_USER || 'not set'})`
       });
     }
 
