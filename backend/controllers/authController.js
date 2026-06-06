@@ -210,7 +210,7 @@ exports.requestPasswordReset = async (req, res) => {
         await axios.post(
           'https://api.resend.com/emails',
           {
-            from: process.env.SMTP_FROM || 'onboarding@resend.dev',
+            from: process.env.RESEND_FROM || 'onboarding@resend.dev',
             to: [emailPayload.to],
             subject: emailPayload.subject,
             html: emailPayload.html,
