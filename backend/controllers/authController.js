@@ -22,7 +22,7 @@ const emailTransporter = process.env.SMTP_HOST && process.env.SMTP_USER
 
 const signToken = (user) => jwt.sign(
   { id: user._id.toString(), role: user.role },
-  process.env.JWT_SECRET,
+  process.env.JWT_SECRET || 'finance_collection_secret_fallback_key_2026',
   { expiresIn: process.env.JWT_EXPIRE || '7d' }
 );
 
