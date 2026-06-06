@@ -182,13 +182,15 @@ exports.requestPasswordReset = async (req, res) => {
     
     await user.save();
 
-    if (!emailTransporter) {
-      return res.status(500).json({ message: 'Email service is not configured' });
+    const hasResend = !!process.env.RESEND_API_KEY;
+    const hasSmtp = !!emailTransporter;
+
+    if (!hasResend && !hasSmtp) {
+      return res.status(500).json({ message: 'Email service is not configured. Please set RESEND_API_KEY or SMTP variables.' });
     }
 
     try {
-      await emailTransporter.sendMail({
-        from: `Finance Collection <${(process.env.SMTP_FROM || process.env.SMTP_USER || '').trim()}>`,
+      const emailPayload = {
         to: user.email,
         subject: 'Your Password Recovery Code',
         text: `Your Finance Collection system password reset code is: ${otp}\n\nIt will expire in 15 minutes.`,
@@ -201,11 +203,39 @@ exports.requestPasswordReset = async (req, res) => {
             <p>If you didn't request this, you can safely ignore this email.</p>
           </div>
         `
-      });
+      };
+
+      if (hasResend) {
+        const axios = require('axios');
+        await axios.post(
+          'https://api.resend.com/emails',
+          {
+            from: process.env.SMTP_FROM || 'onboarding@resend.dev',
+            to: [emailPayload.to],
+            subject: emailPayload.subject,
+            html: emailPayload.html,
+            text: emailPayload.text
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      } else {
+        await emailTransporter.sendMail({
+          from: `Finance Collection <${(process.env.SMTP_FROM || process.env.SMTP_USER || '').trim()}>`,
+          to: emailPayload.to,
+          subject: emailPayload.subject,
+          text: emailPayload.text,
+          html: emailPayload.html
+        });
+      }
     } catch (emailError) {
       console.error('Failed to send Email:', emailError);
       return res.status(500).json({
-        message: `Failed to send recovery code to the registered email: ${emailError.message} (SMTP Host: ${process.env.SMTP_HOST || 'not set'}, Port: ${process.env.SMTP_PORT || 'not set'}, User: ${process.env.SMTP_USER || 'not set'})`
+        message: `Failed to send recovery code to the registered email: ${emailError.message} (SMTP Host: ${process.env.SMTP_HOST || 'not set'}, Port: ${process.env.SMTP_PORT || 'not set'}, User: ${process.env.SMTP_USER || 'not set'}, Resend API: ${hasResend ? 'configured' : 'not set'})`
       });
     }
 
