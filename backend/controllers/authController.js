@@ -8,17 +8,17 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
 
-const emailTransporter = process.env.SMTP_HOST && process.env.SMTP_USER
-  ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT?.trim() || 587),
-      secure: Number(process.env.SMTP_PORT?.trim() || 587) === 465,
-      auth: {
-        user: process.env.SMTP_USER?.trim(),
-        pass: process.env.SMTP_PASS?.trim(),
-      },
-    })
-  : null;
+    const emailTransporter = process.env.SMTP_HOST && process.env.SMTP_USER
+      ? nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT?.trim() || 587),
+          secure: Number(process.env.SMTP_PORT?.trim() || 587) === 465,
+          auth: {
+            user: process.env.SMTP_USER?.trim(),
+            pass: process.env.SMTP_PASS?.trim().replace(/\s/g, ''),
+          },
+        })
+      : null;
 
 const signToken = (user) => jwt.sign(
   { id: user._id.toString(), role: user.role },
